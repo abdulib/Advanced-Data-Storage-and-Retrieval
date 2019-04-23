@@ -112,30 +112,42 @@ def temperature():
 
 #################################################
 
-@app.route("/api/<start>")
-def trip1(start):
-    
-    start_date= dt.datetime.strptime(start, '%Y-%m-%d')
-    last_year = dt.timedelta(days=365)
-    start = start_date-last_year
-    end =  dt.date(2017, 8, 23)
-    trip_data = session.query(func.min(Measurement.tobs), func.avg(Measurement.tobs), func.max(Measurement.tobs)).\
-        filter(Measurement.date >= start).filter(Measurement.date <= end).all()
-    trip = list(np.ravel(trip_data))
-    return jsonify(trip)
+@app.route('/api/v1.0/<date>/')
+def given_date(date):
+    """Return the average temp, max temp, and min temp for the date"""
+    results = session.query(Measurement.date, func.avg(Measurement.tobs), func.max(Measurement.tobs), func.min(Measurement.tobs)).\
+        filter(Measurement.date == date).all()
+
+#Create JSON
+    data_list = []
+    for result in results:
+        row = {}
+        row['Date'] = result[0]
+        row['Average Temperature'] = float(result[1])
+        row['Highest Temperature'] = float(result[2])
+        row['Lowest Temperature'] = float(result[3])
+        data_list.append(row)
+
+    return jsonify(data_list)
+
 
 #################################################
-@app.route("/api/<start>/<end>")
-def trip2(start,end):
-    start_date= dt.datetime.strptime(start, '%Y-%m-%d')
-    end_date= dt.datetime.strptime(end,'%Y-%m-%d')
-    last_year = dt.timedelta(days=365)
-    start = start_date-last_year
-    end = end_date-last_year
-    trip_data = session.query(func.min(Measurement.tobs), func.avg(Measurement.tobs), func.max(Measurement.tobs)).\
-        filter(Measurement.date >= start).filter(Measurement.date <= end).all()
-    trip = list(np.ravel(trip_data))
-    return jsonify(trip)
+@app.route('/api/v1.0/<start_date>/<end_date>/')
+def query_dates(start_date, end_date):
+    """Return the avg, max, min, temp over a specific time period"""
+    results = session.query(func.avg(Measurement.tobs), func.max(Measurement.tobs), func.min(Measurement.tobs)).\
+        filter(Measurement.date >= start_date, Measurement.date <= end_date).all()
+
+    data_list = []
+    for result in results:
+        row = {}
+        row["Start Date"] = start_date
+        row["End Date"] = end_date
+        row["Average Temperature"] = float(result[0])
+        row["Highest Temperature"] = float(result[1])
+        row["Lowest Temperature"] = float(result[2])
+        data_list.append(row)
+    return jsonify(data_list)
 
 
 #################################################
